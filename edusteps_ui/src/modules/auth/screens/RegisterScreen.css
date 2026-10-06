@@ -1,0 +1,30 @@
+.register-hero {
+  background-image: url('../../../assets/images/register-hero.jpg');
+}
+
+.password-strength-bar[data-index="0"] {
+  background-color: var(--color-border, #e5e7eb);
+}
+
+.password-strength-bar[data-strength="1"][data-index="0"] {
+  background-color: var(--color-success, #22c55e);
+}
+
+.password-strength-bar[data-index="1"] {
+  background-color: var(--color-border, #e5e7eb);
+}
+
+.password-strength-bar[data-strength="2"][data-index="0"],
+.password-strength-bar[data-strength="2"][data-index="1"] {
+  background-color: var(--color-success, #22c55e);
+}
+
+.password-strength-bar[data-index="2"] {
+  background-color: var(--color-border, #e5e7eb);
+}
+
+.password-strength-bar[data-strength="3"][data-index="0"],
+.password-strength-bar[data-strength="3"][data-index="1"],
+.password-strength-bar[data-strength="3"][data-index="2"] {
+  background-color: var(--color-success, #22c55e);
+}

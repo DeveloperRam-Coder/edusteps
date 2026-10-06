@@ -1,0 +1,47 @@
+.quickActionButton {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  color: white;
+  transition: all 0.3s duration;
+  cursor: pointer;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+}
+
+/* Gradient variants */
+.quickActionButton[data-gradient='from-blue-500 to-blue-600'] {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.quickActionButton[data-gradient='from-green-500 to-green-600'] {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.quickActionButton[data-gradient='from-purple-500 to-purple-600'] {
+  background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+}
+
+.quickActionButton[data-gradient='from-orange-500 to-orange-600'] {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+}
+
+.quickActionButton[data-gradient='from-red-500 to-red-600'] {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.quickActionButton:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  transform: scale(1.05);
+}
+
+.quickActionButton:focus {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}

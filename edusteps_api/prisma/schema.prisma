@@ -1,0 +1,417 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["public", "settings"]
+  // settings schema hosts user_preferences and support_tickets
+}
+
+model users {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                 String    @unique(map: "user_email_key")
+  mobile                String?
+  name                  String?
+  password              String
+  created_ip            String?
+  updated_ip            String?
+  created_at            DateTime  @default(now())
+  updated_at            DateTime
+  reset_password_token  String?   @unique
+  reset_password_expire DateTime?
+  avatar                String?
+  email_verified        Boolean   @default(false)
+  account_status        String    @default("active") @db.VarChar(20)
+  last_login_at         DateTime?
+  last_login_ip         String?   @db.VarChar(50)
+
+  user_preferences  user_preferences?
+  support_tickets   support_tickets[]
+  attendance_marked attendances[] @relation("AttendanceMarkedBy")
+  attendance_created attendances[] @relation("AttendanceCreatedBy")
+  attendance_updated attendances[] @relation("AttendanceUpdatedBy")
+
+  @@index([reset_password_token])
+  @@index([account_status])
+  @@index([mobile])
+  @@schema("public")
+}
+
+model client_permission {
+  permission_id BigInt   @id @default(autoincrement())
+  client_id     BigInt
+  user_id       String?
+  created_id    String
+  updated_id    String?
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime @default(now()) @db.Timestamptz(6)
+  clients       clients  @relation(fields: [client_id], references: [client_id], onDelete: Cascade)
+
+  @@schema("public")
+}
+
+model clients {
+  client_id                   BigInt              @id @default(autoincrement())
+  name                        String              @db.VarChar(200)
+  phone                       String?             @db.VarChar(50)
+  email                       String?             @db.VarChar(200)
+  address                     String?             @db.VarChar(500)
+  payment_provider_account_id String?             @db.VarChar(200)
+  requires_master_config      Boolean             @default(false)
+  created_id                  String
+  updated_id                  String?
+  created_at                  DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at                  DateTime            @default(now()) @db.Timestamptz(6)
+  client_permission           client_permission[]
+  courses                     courses[]
+  customers                   customers[]
+  students                    students[]
+  payment_details             payment_details[]
+  timetables                  timetables[]
+
+  @@schema("public")
+}
+
+model courses {
+  course_id   BigInt                @id @default(autoincrement())
+  client_id   BigInt
+  course_name String                @db.VarChar(255)
+  description String?               @db.VarChar(500)
+  rate        Decimal               @db.Decimal(10, 2)
+  rate_type   course_rate_type_enum
+  priority_no Int
+  created_id  String
+  updated_id  String
+  created_at  DateTime              @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime              @default(now()) @db.Timestamptz(6)
+  clients     clients               @relation(fields: [client_id], references: [client_id], onDelete: Cascade, onUpdate: NoAction)
+  enrollments enrollments[]
+  students    students[]
+  attendances attendances[]
+  timetables  timetables[]
+
+  @@index([client_id])
+  @@index([rate_type])
+  @@index([priority_no])
+  @@schema("public")
+}
+
+model customers {
+  customer_id     BigInt            @id @default(autoincrement())
+  first_name      String            @db.VarChar(100)
+  last_name       String?           @db.VarChar(100)
+  mobile          String            @db.VarChar(10)
+  email           String?           @db.VarChar(255)
+  address         String?           @db.VarChar(200)
+  client_id       BigInt
+  created_id      String
+  updated_id      String
+  created_at      DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime          @default(now()) @db.Timestamptz(6)
+  clients         clients           @relation(fields: [client_id], references: [client_id], onDelete: Cascade)
+  enrollments     enrollments[]
+  students        students[]
+  fee_reminders   fee_reminders[]
+  payment_details payment_details[]
+  attendances     attendances[]
+
+  @@unique([mobile, client_id])
+  @@index([client_id])
+  @@index([mobile])
+  @@index([email])
+  @@schema("public")
+}
+
+model students {
+  student_id   BigInt  @id @default(autoincrement())
+  customer_id  BigInt
+  client_id    BigInt
+  course_id    BigInt?
+  legacy_cd_id BigInt? @unique
+
+  first_name      String         @db.VarChar(100)
+  last_name       String?        @db.VarChar(100)
+  display_name    String?        @db.VarChar(200)
+  subject         String?        @db.VarChar(100)
+  admission_date  DateTime?      @db.Date
+  fee_amount      Decimal?       @db.Decimal(10, 2)
+  status          student_status @default(active)
+  is_active       Boolean        @default(true)
+  deactivate_date DateTime?      @db.Date
+
+  created_id String
+  updated_id String
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+
+  clients   clients   @relation(fields: [client_id], references: [client_id], onDelete: Cascade)
+  customers customers @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
+  courses   courses?  @relation(fields: [course_id], references: [course_id], onDelete: SetNull)
+
+  customer_details customer_details? @relation(fields: [legacy_cd_id], references: [cd_id])
+
+  payment_details payment_details[]
+  attendances     attendances[]
+
+  @@index([customer_id])
+  @@index([client_id])
+  @@index([course_id])
+  @@index([status])
+  @@schema("public")
+}
+
+model enrollments {
+  enrollment_id BigInt                 @id @default(autoincrement())
+  course_id     BigInt
+  enrolled_at   DateTime               @default(now()) @db.Timestamptz(6)
+  client_id     BigInt
+  created_id    String
+  updated_id    String
+  created_at    DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime               @default(now()) @db.Timestamptz(6)
+  customer_id   BigInt
+  status        enrollment_status_enum @default(active)
+  courses       courses                @relation(fields: [course_id], references: [course_id], onDelete: Cascade, onUpdate: NoAction)
+  customers     customers              @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([customer_id])
+  @@index([course_id])
+  @@index([client_id])
+  @@index([status])
+  @@schema("public")
+}
+
+model customer_details {
+  cd_id             BigInt    @id @default(autoincrement())
+  first_name        String    @db.VarChar(100)
+  last_name         String?   @db.VarChar(100)
+  subject           String    @db.VarChar(100)
+  registration_date DateTime  @db.Date
+  amount            Decimal   @db.Decimal(10, 2)
+  is_active         Boolean   @default(false)
+  deactivate_date   DateTime? @db.Date
+  customer_id       BigInt
+  created_id        String
+  updated_id        String
+  created_at        DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime  @default(now()) @db.Timestamptz(6)
+
+  student students?
+
+  payment_details payment_details[]
+
+  @@schema("public")
+}
+
+model payment_details {
+  id                   BigInt                   @id @default(autoincrement())
+  customer_id          BigInt
+  cd_id                BigInt
+  student_id           BigInt?
+  client_id            BigInt
+  paid_amount          Decimal                  @db.Decimal(10, 2)
+  discount_amount      Decimal                  @default(0) @db.Decimal(10, 2)
+  payment_mode         String?                  @db.VarChar(50)
+  lifecycle_status     payment_lifecycle_status @default(PENDING_OVERDUE)
+  transaction_ref      String?                  @db.VarChar(100)
+  invoice_file_path    String?                  @db.VarChar(500)
+  invoice_generated_at DateTime?                @db.Timestamptz(6)
+  paid_on              DateTime                 @default(dbgenerated("CURRENT_DATE")) @db.Date
+  created_id           String
+  created_at           DateTime                 @default(now()) @db.Timestamptz(6)
+  customer_details     customer_details         @relation(fields: [cd_id], references: [cd_id], onDelete: Cascade, map: "fk_payment_cd")
+  clients              clients                  @relation(fields: [client_id], references: [client_id], onDelete: Cascade, map: "fk_payment_client")
+  customers            customers                @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade, map: "fk_payment_customer")
+  students             students?                @relation(fields: [student_id], references: [student_id], onDelete: SetNull, map: "fk_payment_student")
+
+  @@index([customer_id])
+  @@index([cd_id])
+  @@index([student_id])
+  @@index([client_id])
+  @@index([lifecycle_status])
+  @@index([paid_on])
+  @@schema("public")
+}
+
+model fee_reminders {
+  reminder_id     BigInt              @id @default(autoincrement())
+  customer_id     BigInt
+  client_id       BigInt
+  cd_id           BigInt
+  due_date        DateTime            @db.Date
+  amount_due      Decimal             @db.Decimal(10, 2)
+  reminder_date   DateTime            @db.Date
+  status          fee_reminder_status @default(pending)
+  sent_at         DateTime?           @db.Timestamptz(6)
+  delivery_status String?             @db.VarChar(50)
+  message_id      String?             @db.VarChar(200)
+  created_at      DateTime            @default(now()) @db.Timestamptz(6)
+  customers       customers           @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
+
+  @@index([reminder_date, status])
+  @@schema("public")
+}
+
+model attendances {
+  attendance_id BigInt            @id @default(autoincrement())
+  customer_id   BigInt
+  student_id    BigInt?
+  course_id     BigInt?
+  client_id     BigInt
+  date          DateTime          @db.Date
+  status        attendance_status @default(present)
+  remarks       String?           @db.VarChar(200)
+  marked_by     String            @db.Uuid
+  created_id    String            @db.Uuid
+  updated_id    String            @db.Uuid
+  created_at    DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime          @default(now()) @db.Timestamptz(6)
+  customers     customers         @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
+  students      students?         @relation(fields: [student_id], references: [student_id], onDelete: SetNull)
+  courses       courses?          @relation(fields: [course_id], references: [course_id], onDelete: Cascade)
+  users_marked  users             @relation("AttendanceMarkedBy", fields: [marked_by], references: [id], onDelete: Restrict)
+  users_created users             @relation("AttendanceCreatedBy", fields: [created_id], references: [id], onDelete: Restrict)
+  users_updated users             @relation("AttendanceUpdatedBy", fields: [updated_id], references: [id], onDelete: Restrict)
+
+  @@unique([customer_id, student_id, client_id, date])
+  @@index([customer_id])
+  @@index([student_id])
+  @@index([course_id])
+  @@index([client_id])
+  @@index([date])
+  @@index([marked_by])
+  @@schema("public")
+}
+
+model timetables {
+  timetable_id BigInt      @id @default(autoincrement())
+  client_id    BigInt
+  course_id    BigInt?
+  title        String      @db.VarChar(200)
+  day_of_week  day_of_week
+  start_time   String      @db.VarChar(5)
+  end_time     String      @db.VarChar(5)
+  room         String?     @db.VarChar(100)
+  teacher      String?     @db.VarChar(100)
+  color        String?     @db.VarChar(20)
+  is_active    Boolean     @default(true)
+  created_id   String
+  created_at   DateTime    @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime    @default(now()) @db.Timestamptz(6)
+  clients      clients     @relation(fields: [client_id], references: [client_id], onDelete: Cascade)
+  courses      courses?    @relation(fields: [course_id], references: [course_id], onDelete: SetNull)
+
+  @@index([client_id])
+  @@index([day_of_week])
+  @@index([course_id])
+  @@schema("public")
+}
+
+enum course_rate_type_enum {
+  per_hour
+  per_session
+  per_course
+  per_month
+
+  @@schema("public")
+}
+
+enum enrollment_status_enum {
+  pending
+  active
+  completed
+  cancelled
+
+  @@schema("public")
+}
+
+enum payment_status_enum {
+  pending
+  succeeded
+  failed
+  refunded
+
+  @@schema("public")
+}
+
+enum payment_lifecycle_status {
+  SUCCESSFUL
+  PENDING_OVERDUE
+  REFUNDED
+
+  @@schema("public")
+}
+
+enum student_status {
+  active
+  inactive
+  archived
+
+  @@schema("public")
+}
+
+enum fee_reminder_status {
+  pending
+  sent
+  failed
+  cancelled
+
+  @@schema("public")
+}
+
+enum attendance_status {
+  present
+  absent
+  late
+  excused
+
+  @@schema("public")
+}
+
+model user_preferences {
+  id                  BigInt   @id @default(autoincrement())
+  user_id             String   @unique @db.Uuid
+  theme               String   @default("system") @db.VarChar(10)
+  language            String   @default("en") @db.VarChar(10)
+  email_notifications Boolean  @default(true)
+  sms_reminders       Boolean  @default(true)
+  marketing_emails    Boolean  @default(false)
+  created_at          DateTime @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime @default(now()) @db.Timestamptz(6)
+  users               users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@schema("public")
+}
+
+model support_tickets {
+  id         BigInt   @id @default(autoincrement())
+  user_id    String   @db.Uuid
+  subject    String   @db.VarChar(200)
+  category   String   @db.VarChar(50)
+  message    String   @db.Text
+  status     String   @default("open") @db.VarChar(20)
+  priority   String   @default("medium") @db.VarChar(20)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([status])
+  @@index([created_at])
+  @@schema("public")
+}
+
+enum day_of_week {
+  monday
+  tuesday
+  wednesday
+  thursday
+  friday
+  saturday
+  sunday
+
+  @@schema("public")
+}
