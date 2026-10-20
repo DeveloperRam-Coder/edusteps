@@ -5,11 +5,11 @@ import { env } from '@/core/env'
 import { clearAuth } from '@/core/utils/storage'
 
 // API URL Configuration
-// Priority: 1. .env file (VITE_API_URL), 2. Default to localhost for dev
+// Priority: 1. .env file (VITE_API_BASE_URL), 2. Default to localhost for dev
 const getApiUrl = () => {
-  // Check if VITE_API_URL is set in .env
-  if (env.VITE_API_URL) {
-    return env.VITE_API_URL;
+  // Check if VITE_API_BASE_URL is set in .env or Netlify
+  if (env.VITE_API_BASE_URL) {
+    return env.VITE_API_BASE_URL;
   }
   // Default to localhost for development
   return 'http://localhost:3000/api';
@@ -153,7 +153,7 @@ api.interceptors.response.use(
       // Handle 429 Too Many Requests with retry
       if (error.response?.status === 429 && error.config) {
         const retryAfter = parseInt(error.response.headers['retry-after'] || '2', 10);
-        await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+        await new Response(resolve => setTimeout(resolve, retryAfter * 1000)); // fixed timeout syntax
         return api.request(error.config);
       }
 
@@ -188,4 +188,3 @@ api.interceptors.response.use(
 );
 
 export default api;
-
