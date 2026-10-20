@@ -28,11 +28,8 @@ async function bootstrap() {
   // Must be registered BEFORE helmet and ServeStaticModule serves files.
   app.use((req: any, res: any, next: () => void) => {
     if (req.path.startsWith('/uploads/')) {
-      const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'https://magenta-douhua-28a513.netlify.app,http://localhost:5173,http://localhost:8081,http://localhost:8082')
-        .split(',')
-        .map((o: string) => o.trim());
       const origin = req.headers.origin as string;
-      if (origin && allowedOrigins.includes(origin)) {
+      if (origin && (origin.endsWith('.netlify.app') || origin.includes('localhost'))) {
         res.header('Access-Control-Allow-Origin', origin);
       } else if (!origin) {
         res.header('Access-Control-Allow-Origin', '*');
@@ -73,14 +70,20 @@ async function bootstrap() {
     return this.toString();
   };
 
-  const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'https://magenta-douhua-28a513.netlify.app,http://localhost:5173,http://localhost:8082,http://localhost:8081')
-    .split(',')
-    .map((o) => o.trim());
+  // Dynamic Allowed Origins for Netlify Previews & Production + Localhost
+  const allowedOrigins = [
+    'https://magenta-douhua-28a513.netlify.app',
+    'http://localhost:5173',
+    'http://localhost:8082',
+    'http://localhost:8081',
+  ];
 
   app.use((req: any, res: any, next: () => void) => {
     const origin = req.headers.origin as string;
+    const isAllowed = origin && (allowedOrigins.includes(origin) || origin.endsWith('.netlify.app') || origin.includes('localhost'));
+
     if (req.method === 'OPTIONS') {
-      if (origin && allowedOrigins.includes(origin)) {
+      if (isAllowed) {
         res.header('Access-Control-Allow-Origin', origin);
         res.header('Access-Control-Allow-Credentials', 'true');
       }
@@ -92,7 +95,13 @@ async function bootstrap() {
   });
 
   app.enableCors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.netlify.app') || origin.includes('localhost')) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
     allowedHeaders: ['Authorization', 'Content-Type', 'Accept'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
