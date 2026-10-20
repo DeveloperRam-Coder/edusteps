@@ -17,19 +17,24 @@ async function bootstrap() {
     exclude: [{ path: '/uploads/(.*)', method: RequestMethod.ALL }],
   });
 
+  // Root route to prevent 404 on base URL (https://edusteps-981m.onrender.com/)
+  app.getHttpAdapter().get('/', (req, res) => {
+    res.json({
+      status: 'success',
+      message: 'InternSteps Backend API is running successfully!',
+    });
+  });
+
   // Must be registered BEFORE helmet and ServeStaticModule serves files.
-  // ServeStaticModule bypasses NestJS CORS middleware, so we inject CORS headers
-  // manually for /uploads/* so the browser can load avatar images cross-origin.
   app.use((req: any, res: any, next: () => void) => {
     if (req.path.startsWith('/uploads/')) {
-      const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:8081,http://localhost:8082')
+      const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'https://magenta-douhua-28a513.netlify.app,http://localhost:5173,http://localhost:8081,http://localhost:8082')
         .split(',')
         .map((o: string) => o.trim());
       const origin = req.headers.origin as string;
       if (origin && allowedOrigins.includes(origin)) {
         res.header('Access-Control-Allow-Origin', origin);
       } else if (!origin) {
-        // same-origin or direct browser request — allow
         res.header('Access-Control-Allow-Origin', '*');
       }
       res.header('Cross-Origin-Resource-Policy', 'cross-origin');
@@ -44,13 +49,10 @@ async function bootstrap() {
           defaultSrc: ["'self'"],
           styleSrc: ["'self'", "'unsafe-inline'"],
           scriptSrc: ["'self'"],
-          // Allow http: for local dev avatar images served from localhost:3000
           imgSrc: ["'self'", 'data:', 'https:', 'http:'],
         },
       },
-      // Disable COEP — it blocks cross-origin images that lack CORP headers
       crossOriginEmbedderPolicy: false,
-      // Allow cross-origin resource loading
       crossOriginResourcePolicy: false,
     }),
   );
@@ -71,7 +73,7 @@ async function bootstrap() {
     return this.toString();
   };
 
-  const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:8082,http://localhost:8081')
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'https://magenta-douhua-28a513.netlify.app,http://localhost:5173,http://localhost:8082,http://localhost:8081')
     .split(',')
     .map((o) => o.trim());
 
